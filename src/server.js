@@ -21,10 +21,6 @@ configViewEngine(app);
 //config routes
 app.use('/', webRouter);
 
-connection.query('select * from Users;', function (err, results, fields) {
-  console.log('>>>results= ', results); // results contains rows returned by server
-});
-
 //run app
 app.listen(port, hostname, () => {
   console.log(`Example app listening on port ${port}`);
