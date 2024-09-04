@@ -1,34 +1,41 @@
 const connection = require('../config/database');
+const User = require('../models/user');
 
 const getAllUsers = async () => {
-  let [result, fields] = await connection.query('SELECT * FROM Users');
-  return result;
+  return await User.find({});
 };
 
 const getUserById = async (id) => {
-  let [result, fields] = await connection.query(
-    'SELECT * FROM Users where id = ?',
-    [id]
-  );
-  return (user = result && result.length > 0 ? result[0] : {});
+  return await User.findById(id);
 };
 
 const createUser = async (email, name, city) => {
-  let [result, fields] = await connection.query(
-    `INSERT INTO Users (email, name, city)  VALUES (?,?,?)`,
-    [email, name, city]
-  );
+  await User.create({
+    email,
+    name,
+    city,
+  });
 };
 
 const updateUser = async (id, email, name, city) => {
-  let [result, fields] = await connection.query(
-    `
-        UPDATE Users
-        SET email = ?, name = ?, city = ?
-        WHERE id = ?
-        `,
-    [email, name, city, id]
+  await User.updateOne(
+    { _id: id },
+    {
+      email,
+      name,
+      city,
+    }
   );
 };
 
-module.exports = { getAllUsers, getUserById, createUser, updateUser };
+const deleteUser = async (id) => {
+  await User.deleteOne({ _id: id });
+};
+
+module.exports = {
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+};

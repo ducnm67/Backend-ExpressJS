@@ -3,6 +3,7 @@ const express = require('express');
 
 const configViewEngine = require('./config/viewEngine');
 const webRouter = require('./routes/web');
+const apiRouter = require('./routes/api');
 const connection = require('./config/database');
 
 const app = express();
@@ -20,8 +21,17 @@ configViewEngine(app);
 
 //config routes
 app.use('/', webRouter);
+app.use('/v1/api/', apiRouter);
 
 //run app
-app.listen(port, hostname, () => {
-  console.log(`Example app listening on port ${port}`);
-});
+(async () => {
+  try {
+    //test connection
+    await connection();
+    app.listen(port, hostname, () => {
+      console.log(`Example app listening on port ${port}`);
+    });
+  } catch (err) {
+    console.log('>>> Error connection DB: ', err);
+  }
+})();
