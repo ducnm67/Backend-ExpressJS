@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const fileUpload = require('express-fileupload');
 
 const configViewEngine = require('./config/viewEngine');
 const webRouter = require('./routes/web');
@@ -11,6 +12,9 @@ const app = express();
 // Set up environment variables
 const port = process.env.PORT || 3000;
 const hostname = process.env.HOST_NAME;
+
+//config file upload
+app.use(fileUpload());
 
 //config req.body
 app.use(express.json());
