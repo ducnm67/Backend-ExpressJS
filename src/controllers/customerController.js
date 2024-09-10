@@ -1,4 +1,5 @@
 const Customer = require('../models/customer');
+const Joi = require("joi")
 
 const { uploadSingleFile } = require('../services/fileService');
 
@@ -14,30 +15,48 @@ const {
 const postCreateCustomerAPI = async (req, res) => {
   let { name, address, phone, email, description } = req.body;
 
-  let imageUrl = '';
+  const validate = Joi.object({
+    name: Joi.string()
+      .min(3)
+      .max(50),
+    address: Joi.string(),
+    phone: Joi.string().pattern(new RegExp("^[0-9]{8,11}$")),
+    email: Joi.string().email(),
+    description: Joi.string(),
+  })
 
-  if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).send('No files were uploaded.');
+  const {error} = validate.validate(req.body, {abortEarly: false});
+  if (error) {
+    return res.status(200).json({
+      errorCode: 0,
+      data: error,
+    }); 
   } else {
-    let result = await uploadSingleFile(req.files.image);
-    imageUrl = result.path;
+    let imageUrl = '';
+
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(400).send('No files were uploaded.');
+    } else {
+      let result = await uploadSingleFile(req.files.image);
+      imageUrl = result.path;
+    }
+  
+    let customerData = {
+      name,
+      address,
+      phone,
+      email,
+      description,
+      image: imageUrl,
+    };
+  
+    let customer = await createCustomerService(customerData);
+  
+    return res.status(200).json({
+      errorCode: 0,
+      data: customer,
+    });
   }
-
-  let customerData = {
-    name,
-    address,
-    phone,
-    email,
-    description,
-    image: imageUrl,
-  };
-
-  let customer = await createCustomerService(customerData);
-
-  return res.status(200).json({
-    errorCode: 0,
-    data: customer,
-  });
 };
 
 const postCreateArrayCustomerAPI = async (req, res) => {

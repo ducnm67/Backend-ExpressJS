@@ -2,27 +2,38 @@ const Project = require("../models/project")
 const aqp = require('api-query-params')
 
 const createProjectService = async (data) => {
-    try {
-        if (data.type === "EMPTY-PROJECT") {
-            let result = Project.create(data)
-            return result;
-        }
-        if (data.type === "ADD-USERS") {
-            let project =  await Project.findById(data.projectId)
-
-            console.log(">>> project: ", project)
-
-            for (let i = 0; i < data.usersArr.length; i++) {
-                project.usersInfor.push(data.usersArr[i])
-            }
-
-            let result = await project.save()
-            return result;
-        }
-    } catch (error) {
-        console.log(error);
-        return null;
+    let result = null
+    if (data.type === "EMPTY-PROJECT") {
+        result = Project.create(data)
     }
+    if (data.type === "ADD-USERS") {
+        let project =  await Project.findById(data.projectId)
+
+        for (let i = 0; i < data.usersArr.length; i++) {
+            project.usersInfor.push(data.usersArr[i])
+        }
+
+        result = await project.save()
+    }
+    if (data.type === "REMOVE-USERS") {
+        let project =  await Project.findById(data.projectId)
+
+        for (let i = 0; i < data.usersArr.length; i++) {
+            project.usersInfor.pull(data.usersArr[i])
+        }
+
+        result = await project.save()
+    }
+    if (data.type === "ADD-TASKS") {
+        let project =  await Project.findById(data.projectId)
+
+        for (let i = 0; i < data.taskArr.length; i++) {
+            project.tasks.push(data.taskArr[i])
+        }
+
+        result = await project.save()
+    }
+    return result;
 }
 
 const getProjectService = async (queryString) => {
@@ -39,7 +50,32 @@ const getProjectService = async (queryString) => {
     }
 }
 
+const updateProjectService = async (data) => {
+    try {
+        let result = await Project.updateOne(
+            { _id: data.id },
+            { $set: data }
+        )
+        return result;
+    } catch (error) {
+        console.log(error);
+        return null
+    }
+}
+
+const deleteAProjectService = async (data) => {
+    try {
+        let result = await Project.deleteById({ _id: data.id })
+        return result;
+    } catch (error) {
+        console.log(error);
+        return null;
+    }
+}
+
 module.exports = {
     createProjectService,
-    getProjectService
+    getProjectService,
+    updateProjectService,
+    deleteAProjectService
 }
