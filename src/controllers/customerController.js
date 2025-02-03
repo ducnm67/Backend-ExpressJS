@@ -1,6 +1,5 @@
 const Customer = require('../models/customer');
-const Joi = require("joi")
-
+const Joi = require('joi');
 const { uploadSingleFile } = require('../services/fileService');
 
 const {
@@ -12,36 +11,67 @@ const {
   deleteCustomersService,
 } = require('../services/customerService');
 
+/**
+ * Helper gửi phản hồi thành công
+ * @param {object} res Express response object
+ * @param {any} data Dữ liệu trả về
+ * @param {number} status Mã trạng thái HTTP (mặc định: 200)
+ */
+const sendResponse = (res, data, status = 200) => {
+  return res.status(status).json({
+    errorCode: 0,
+    data,
+  });
+};
+
+/**
+ * Helper gửi phản hồi lỗi
+ * @param {object} res Express response object
+ * @param {Error|string} error Thông tin lỗi
+ * @param {number} status Mã trạng thái HTTP (mặc định: 500)
+ */
+const sendError = (res, error, status = 500) => {
+  return res.status(status).json({
+    errorCode: 1,
+    message: error.message || error,
+  });
+};
+
 const postCreateCustomerAPI = async (req, res) => {
-  let { name, address, phone, email, description } = req.body;
+  try {
+    const { name, address, phone, email, description } = req.body;
+    // Định nghĩa schema validate với Joi
+    const schema = Joi.object({
+      name: Joi.string().min(3).max(50).required(),
+      address: Joi.string().required(),
+      phone: Joi.string().pattern(new RegExp('^[0-9]{8,11}$')).required(),
+      email: Joi.string().email().required(),
+      description: Joi.string().allow('', null),
+    });
 
-  const validate = Joi.object({
-    name: Joi.string()
-      .min(3)
-      .max(50),
-    address: Joi.string(),
-    phone: Joi.string().pattern(new RegExp("^[0-9]{8,11}$")),
-    email: Joi.string().email(),
-    description: Joi.string(),
-  })
-
-  const {error} = validate.validate(req.body, {abortEarly: false});
-  if (error) {
-    return res.status(200).json({
-      errorCode: 0,
-      data: error,
-    }); 
-  } else {
-    let imageUrl = '';
-
-    if (!req.files || Object.keys(req.files).length === 0) {
-      return res.status(400).send('No files were uploaded.');
-    } else {
-      let result = await uploadSingleFile(req.files.image);
-      imageUrl = result.path;
+    const { error } = schema.validate(req.body, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({
+        errorCode: 1,
+        message: 'Validation error',
+        details: error.details, // chi tiết lỗi validate
+      });
     }
-  
-    let customerData = {
+
+    // Kiểm tra sự tồn tại của file upload
+    if (!req.files || !req.files.image) {
+      return res.status(400).json({
+        errorCode: 1,
+        message: 'No files were uploaded.',
+      });
+    }
+
+    // Upload file
+    const fileResult = await uploadSingleFile(req.files.image);
+    const imageUrl = fileResult.path;
+
+    // Tạo dữ liệu khách hàng
+    const customerData = {
       name,
       address,
       phone,
@@ -49,72 +79,93 @@ const postCreateCustomerAPI = async (req, res) => {
       description,
       image: imageUrl,
     };
-  
-    let customer = await createCustomerService(customerData);
-  
-    return res.status(200).json({
-      errorCode: 0,
-      data: customer,
-    });
+
+    const customer = await createCustomerService(customerData);
+    return sendResponse(res, customer);
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
 const postCreateArrayCustomerAPI = async (req, res) => {
-  let customer = await createArrayCustomerService(req.body.customer);
-  return res.status(200).json({
-    errorCode: 0,
-    data: customer,
-  });
+  try {
+    const customers = req.body.customer;
+    const result = await createArrayCustomerService(customers);
+    return sendResponse(res, result);
+  } catch (error) {
+    return sendError(res, error);
+  }
 };
 
 const getCustomersAPI = async (req, res) => {
-  let result = null;
-  let limit = req.query.limit
-  let page = req.query.page
-
-  if (limit && page) {
-    result = await getCustomersService(limit, page, req.query);
-  } else {
-    result = await getCustomersService();
+  try {
+    let result = null;
+    const { limit, page, ...filters } = req.query;
+    // Nếu có phân trang, truyền tham số phân trang và bộ lọc
+    if (limit && page) {
+      result = await getCustomersService(limit, page, filters);
+    } else {
+      result = await getCustomersService();
+    }
+    return sendResponse(res, result);
+  } catch (error) {
+    return sendError(res, error);
   }
-
-  return res.status(200).json({
-    errorCode: 0,
-    data: result,
-  });
 };
 
 const putUpdateCustomerAPI = async (req, res) => {
-  let { id, name, address, phone, email, description } = req.body;
-  let result = await putUpdateCustomerService(
-    id,
-    name,
-    address,
-    phone,
-    email,
-    description
-  );
-  return res.status(200).json({
-    errorCode: 0,
-    data: result,
-  });
+  try {
+    const { id, name, address, phone, email, description } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        errorCode: 1,
+        message: 'Customer id is required.',
+      });
+    }
+    const result = await putUpdateCustomerService(
+      id,
+      name,
+      address,
+      phone,
+      email,
+      description
+    );
+    return sendResponse(res, result);
+  } catch (error) {
+    return sendError(res, error);
+  }
 };
 
 const deleteACustomerAPI = async (req, res) => {
-  let id = req.body.id;
-  let result = await deleteACustomerService(id);
-  return res.status(200).json({
-    errorCode: 0,
-    data: result,
-  });
+  try {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        errorCode: 1,
+        message: 'Customer id is required.',
+      });
+    }
+    const result = await deleteACustomerService(id);
+    return sendResponse(res, result);
+  } catch (error) {
+    return sendError(res, error);
+  }
 };
 
 const deleteCustomersAPI = async (req, res) => {
-  let result = await deleteCustomersService(req.body.id);
-  return res.status(200).json({
-    errorCode: 0,
-    data: result,
-  });
+  try {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        errorCode: 1,
+        message: 'Customer id(s) is required.',
+      });
+    }
+    const result = await deleteCustomersService(id);
+    return sendResponse(res, result);
+  } catch (error) {
+    return sendError(res, error);
+  }
 };
 
 module.exports = {
