@@ -1,74 +1,57 @@
 const path = require('path');
 
-const uploadSingleFile = async (fileObject) => {
-  let uploadPath = path.resolve(__dirname, '../public/images/upload');
-
+const generateFilePath = (fileObject, uploadPath, timestamp) => {
   let extName = path.extname(fileObject.name);
   let baseName = path.basename(fileObject.name, extName);
+  let finalName = `${baseName}-${timestamp}${extName}`;
+  let finalPath = path.join(uploadPath, finalName);
+  return { finalName, finalPath };
+};
 
-  let finalName = `${baseName}-${Date.now()}${extName}`;
-  let finalPath = `${uploadPath}/${finalName}`;
+const uploadSingleFile = async (fileObject) => {
+  let uploadPath = path.resolve(__dirname, '../public/images/upload');
+  let timestamp = Date.now();
+  let { finalName, finalPath } = generateFilePath(
+    fileObject,
+    uploadPath,
+    timestamp
+  );
 
   try {
     await fileObject.mv(finalPath);
-    return {
-      status: 'success',
-      path: finalName,
-      error: null,
-    };
+    return { status: 'success', path: finalName, error: null };
   } catch (error) {
-    console.log('>>>check error', error);
-    return {
-      status: 'failed',
-      path: fileObject.name,
-      error: JSON.stringify(error),
-    };
+    console.error('>>> Error:', error);
+    return { status: 'failed', path: fileObject.name, error: error.message };
   }
 };
 
 const uploadMultipleFiles = async (fileArr) => {
-  try {
-    let uploadPath = path.resolve(__dirname, '../public/images/upload');
-    let resultArr = [];
-    let countSuccess = 0;
-    for (let i = 0; i < fileArr.length; i++) {
-      let extName = path.extname(fileArr[i].name);
-      let baseName = path.basename(fileArr[i].name, extName);
+  let uploadPath = path.resolve(__dirname, '../public/images/upload');
+  let timestamp = Date.now();
 
-      let finalName = `${baseName}-${Date.now()}${extName}`;
-      let finalPath = `${uploadPath}/${finalName}`;
+  let uploadPromises = fileArr.map((file) => {
+    let { finalName, finalPath } = generateFilePath(
+      file,
+      uploadPath,
+      timestamp
+    );
+    return file
+      .mv(finalPath)
+      .then(() => ({ status: 'success', path: finalName, error: null }))
+      .catch((error) => ({
+        status: 'failed',
+        path: file.name,
+        error: error.message,
+      }));
+  });
 
-      try {
-        await fileArr[i].mv(finalPath);
-        resultArr.push({
-          status: 'success',
-          path: finalName,
-          error: null,
-        });
-        countSuccess++;
-      } catch (error) {
-        console.log('>>>check error', error);
-        resultArr.push({
-          status: 'failed',
-          path: fileArr[i].name,
-          error: JSON.stringify(error),
-        });
-      }
-    }
-    return {
-      countSuccess: countSuccess,
-      result: resultArr,
-    };
-  } catch (error) {
-    console.log('>>>check error', error);
-    return {
-      countSuccess: countSuccess,
-      result: resultArr,
-    };
-  }
+  let resultArr = await Promise.all(uploadPromises);
+  let countSuccess = resultArr.filter(
+    (result) => result.status === 'success'
+  ).length;
+
+  return { countSuccess, result: resultArr };
 };
 
-module.exports = {
-  uploadSingleFile,
-  uploadMultipleFiles,
-};
+module.exports = { uploadSingleFile, uploadMultipleFiles };

@@ -2,15 +2,18 @@ const connection = require('../config/database');
 const User = require('../models/user');
 
 const getAllUsers = async () => {
-  return await User.find({});
+  // Trả về Promise từ việc truy vấn tìm tất cả người dùng
+  return User.find({});
 };
 
 const getUserById = async (id) => {
-  return await User.findById(id);
+  // Tìm người dùng theo id
+  return User.findById(id);
 };
 
 const createUser = async (email, name, city) => {
-  await User.create({
+  // Tạo người dùng mới và trả về kết quả được tạo ra
+  return User.create({
     email,
     name,
     city,
@@ -18,18 +21,13 @@ const createUser = async (email, name, city) => {
 };
 
 const updateUser = async (id, email, name, city) => {
-  await User.updateOne(
-    { _id: id },
-    {
-      email,
-      name,
-      city,
-    }
-  );
+  // Cập nhật thông tin người dùng và trả về kết quả cập nhật
+  return User.updateOne({ _id: id }, { email, name, city });
 };
 
 const deleteUser = async (id) => {
-  await User.deleteOne({ _id: id });
+  // Xóa người dùng theo id và trả về kết quả xóa
+  return User.deleteOne({ _id: id });
 };
 
 module.exports = {

@@ -1,96 +1,38 @@
 const Customer = require('../models/customer');
-const aqp = require('api-query-params')
+const aqp = require('api-query-params');
 
-const createCustomerService = async (customerData) => {
-  try {
-    let result = await Customer.create({
-      name: customerData.name,
-      address: customerData.address,
-      phone: customerData.phone,
-      email: customerData.email,
-      description: customerData.description,
-      image: customerData.image,
-    });
-    return result;
-  } catch (error) {
-    console.error(error);
-  }
+const createCustomerService = (customerData) => {
+  return Customer.create(customerData);
 };
 
-const createArrayCustomerService = async (arr) => {
-  try {
-    let result = await Customer.insertMany(arr);
-    return result;
-  } catch (error) {
-    console.error('>>> error: ', error);
-    return null;
-  }
+const createArrayCustomerService = (arr) => {
+  return Customer.insertMany(arr);
 };
 
 const getCustomersService = async (limit, page, queryString) => {
-  try {
-    let result = null;
-    
-    if (limit && page) {
-      let skip = (page - 1) * limit;
-      const {filter} = aqp(queryString)
-      delete filter.page
-      result = await Customer.find(filter).skip(skip).limit(limit).exec();
-    } else {
-      result = await Customer.find({});
-    }
+  let filter = aqp(queryString).filter;
+  delete filter.page;
 
-    return result;
-  } catch (error) {
-    console.error('>>> error: ', error);
-    return null;
+  let query = Customer.find(filter).lean(); // lean() để tối ưu hiệu suất
+
+  if (limit && page) {
+    let skip = (page - 1) * limit;
+    query = query.skip(skip).limit(limit);
   }
+
+  return query.exec();
 };
 
-const putUpdateCustomerService = async (
-  id,
-  name,
-  address,
-  phone,
-  email,
-  description
-) => {
-  try {
-    let result = await Customer.updateOne(
-      { _id: id },
-      {
-        name,
-        address,
-        phone,
-        email,
-        description,
-      }
-    );
-    return result;
-  } catch (error) {
-    console.error('>>> error: ', error);
-    return null;
-  }
+const putUpdateCustomerService = (id, updateData) => {
+  return Customer.findByIdAndUpdate(id, updateData, { new: true });
 };
 
-const deleteACustomerService = async (id) => {
-  try {
-    let result = await Customer.deleteById({ _id: id });
-    return result;
-  } catch (error) {
-    console.error('>>> error: ', error);
-    return null;
-  }
+const deleteACustomerService = (id) => {
+  return Customer.findByIdAndDelete(id);
 };
 
-const deleteCustomersService = async (arr) => {
-  try {
-    let result = await Customer.delete({ _id: { $in: arr } });
-    return result;
-  } catch (error) {
-    console.error('>>> error: ', error);
-    return null;
-  }
+const deleteCustomersService = (arr) => {
+  return Customer.deleteMany({ _id: { $in: arr } });
 };
 
 module.exports = {

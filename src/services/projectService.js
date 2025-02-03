@@ -1,81 +1,91 @@
-const Project = require("../models/project")
-const aqp = require('api-query-params')
+const Project = require('../models/project');
+const aqp = require('api-query-params');
 
 const createProjectService = async (data) => {
-    let result = null
-    if (data.type === "EMPTY-PROJECT") {
-        result = Project.create(data)
-    }
-    if (data.type === "ADD-USERS") {
-        let project =  await Project.findById(data.projectId)
+  let result = null;
 
-        for (let i = 0; i < data.usersArr.length; i++) {
-            project.usersInfor.push(data.usersArr[i])
-        }
+  switch (data.type) {
+    case 'EMPTY-PROJECT':
+      result = await Project.create(data);
+      break;
 
-        result = await project.save()
-    }
-    if (data.type === "REMOVE-USERS") {
-        let project =  await Project.findById(data.projectId)
+    case 'ADD-USERS':
+      result = await Project.findByIdAndUpdate(
+        data.projectId,
+        { $addToSet: { usersInfor: { $each: data.usersArr } } },
+        { new: true }
+      );
+      break;
 
-        for (let i = 0; i < data.usersArr.length; i++) {
-            project.usersInfor.pull(data.usersArr[i])
-        }
+    case 'REMOVE-USERS':
+      result = await Project.findByIdAndUpdate(
+        data.projectId,
+        { $pull: { usersInfor: { $in: data.usersArr } } },
+        { new: true }
+      );
+      break;
 
-        result = await project.save()
-    }
-    if (data.type === "ADD-TASKS") {
-        let project =  await Project.findById(data.projectId)
+    case 'ADD-TASKS':
+      result = await Project.findByIdAndUpdate(
+        data.projectId,
+        { $addToSet: { tasks: { $each: data.taskArr } } },
+        { new: true }
+      );
+      break;
 
-        for (let i = 0; i < data.taskArr.length; i++) {
-            project.tasks.push(data.taskArr[i])
-        }
+    default:
+      console.warn('Invalid project type:', data.type);
+  }
 
-        result = await project.save()
-    }
-    return result;
-}
+  return result;
+};
 
 const getProjectService = async (queryString) => {
-    try {
-        let page = queryString.page
-        const {filter, limit, population} = aqp(queryString)
-        let skip = (page - 1) * limit;
-        delete filter.page
-        result = await Project.find(filter).populate(population).skip(skip).limit(limit).exec();
-        return result;
-    } catch (error) {
-        console.log(error);
-        return null;
-    }
-}
+  try {
+    const { filter, limit = 10, population } = aqp(queryString);
+    const page = parseInt(queryString.page) || 1;
+    const skip = (page - 1) * limit;
+
+    delete filter.page;
+
+    const result = await Project.find(filter)
+      .populate(population || [])
+      .skip(skip)
+      .limit(limit)
+      .exec();
+
+    return result;
+  } catch (error) {
+    console.error('Error in getProjectService:', error);
+    return null;
+  }
+};
 
 const updateProjectService = async (data) => {
-    try {
-        let result = await Project.updateOne(
-            { _id: data.id },
-            { $set: data }
-        )
-        return result;
-    } catch (error) {
-        console.log(error);
-        return null
-    }
-}
+  try {
+    return await Project.findByIdAndUpdate(
+      data.id,
+      { $set: data },
+      { new: true }
+    );
+  } catch (error) {
+    console.error('Error in updateProjectService:', error);
+    return null;
+  }
+};
 
 const deleteAProjectService = async (data) => {
-    try {
-        let result = await Project.deleteById({ _id: data.id })
-        return result;
-    } catch (error) {
-        console.log(error);
-        return null;
-    }
-}
+  try {
+    return await Project.findByIdAndDelete(data.id);
+  } catch (error) {
+    console.error('Error in deleteAProjectService:', error);
+    return null;
+  }
+};
 
 module.exports = {
-    createProjectService,
-    getProjectService,
-    updateProjectService,
-    deleteAProjectService
-}
+  createProjectService,
+  getProjectService,
+  updateProjectService,
+  deleteAProjectService,
+};

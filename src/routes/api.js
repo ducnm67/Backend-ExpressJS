@@ -22,49 +22,65 @@ const {
   postCreateProjectAPI,
   getProjectAPI,
   putUpdateProjectAPI,
-  deleteAProjectAPI
-} = require('../controllers/projectController')
+  deleteAProjectAPI,
+} = require('../controllers/projectController');
 
 const {
   getTaskAPI,
   postCreateTaskAPI,
   putUpdateTaskAPI,
   deleteATaskAPI,
-} = require('../controllers/taskController')
+} = require('../controllers/taskController');
 
 const routerAPI = express.Router();
 
+// Route chính của API
 routerAPI.get('/', (req, res) => {
   res.send('hello world with API !!!');
 });
 
-routerAPI.get('/users', getUsersAPI);
-routerAPI.post('/users', postCreateUserAPI);
-routerAPI.put('/users', putUpdateUserAPI);
-routerAPI.delete('/users', deleteUserAPI);
+// ------------------ USER ROUTES ------------------
+routerAPI
+  .route('/users')
+  .get(getUsersAPI)
+  .post(postCreateUserAPI)
+  .put(putUpdateUserAPI)
+  .delete(deleteUserAPI);
 
+// ------------------ FILE ROUTES ------------------
 routerAPI.post('/file', postSingleFileAPI);
-
 routerAPI.post('/files', postMultipleFilesAPI);
 
-routerAPI.post('/customer', postCreateCustomerAPI);
-routerAPI.put('/customer', putUpdateCustomerAPI);
-routerAPI.delete('/customer', deleteACustomerAPI);
+// ------------------ CUSTOMER ROUTES ------------------
+routerAPI
+  .route('/customer')
+  .post(postCreateCustomerAPI)
+  .put(putUpdateCustomerAPI)
+  .delete(deleteACustomerAPI);
 
-routerAPI.get('/customers', getCustomersAPI);
-routerAPI.post('/customers', postCreateArrayCustomerAPI);
-routerAPI.delete('/customers', deleteCustomersAPI);
+routerAPI
+  .route('/customers')
+  .get(getCustomersAPI)
+  .post(postCreateArrayCustomerAPI)
+  .delete(deleteCustomersAPI);
 
-routerAPI.get('/project', getProjectAPI);
-routerAPI.post('/project', postCreateProjectAPI);
-routerAPI.put('/project', putUpdateProjectAPI);
-routerAPI.delete('/project', deleteAProjectAPI);
+// ------------------ PROJECT ROUTES ------------------
+routerAPI
+  .route('/project')
+  .get(getProjectAPI)
+  .post(postCreateProjectAPI)
+  .put(putUpdateProjectAPI)
+  .delete(deleteAProjectAPI);
 
-routerAPI.get('/task', getTaskAPI);
-routerAPI.post('/task', postCreateTaskAPI);
-routerAPI.put('/task', putUpdateTaskAPI);
-routerAPI.delete('/task', deleteATaskAPI);
+// ------------------ TASK ROUTES ------------------
+routerAPI
+  .route('/task')
+  .get(getTaskAPI)
+  .post(postCreateTaskAPI)
+  .put(putUpdateTaskAPI)
+  .delete(deleteATaskAPI);
 
+// ------------------ INFO ROUTE ------------------
 routerAPI.get('/info', (req, res) => {
   console.log('>>> req.query: ', req.query);
   return res.status(200).json({
